@@ -1,0 +1,142 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 30px auto;
+      padding: 0 16px;
+      background: #f5f7fb;
+      color: #222;
+    }
+
+    h1 { font-size: 26px; }
+
+    .subtitle {
+      color: #555;
+      margin-bottom: 24px;
+    }
+
+    .question {
+      background: white;
+      padding: 18px;
+      margin: 14px 0;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px #00000010;
+    }
+
+    .question-text {
+      font-size: 16px;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .meta {
+      color: #666;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    button {
+      padding: 9px 14px;
+      border: 0;
+      border-radius: 6px;
+      background: #1769e0;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+
+    #status {
+      margin: 16px 0;
+      color: #444;
+    }
+  </style>
+</head>
+<body>
+  <h1>Question Voting Board</h1>
+  <p class="subtitle">
+    Browse questions, see what others consider important,
+    and upvote each question once.
+  </p>
+
+  <div id="status">Loading questions...</div>
+  <div id="questions"></div>
+
+  <script>
+    function loadQuestions() {
+      document.getElementById('status').textContent =
+        'Loading questions...';
+
+      google.script.run
+        .withSuccessHandler(renderQuestions)
+        .withFailureHandler(showError)
+        .getQuestions();
+    }
+
+    function renderQuestions(questions) {
+      const container = document.getElementById('questions');
+      container.innerHTML = '';
+
+      document.getElementById('status').textContent =
+        questions.length
+          ? questions.length + ' questions'
+          : 'No questions have been submitted yet.';
+
+      questions.forEach(q => {
+        const card = document.createElement('div');
+        card.className = 'question';
+
+        const questionText = document.createElement('div');
+        questionText.className = 'question-text';
+        questionText.textContent = q.question;
+
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.textContent =
+          (q.category || 'General') + ' · ' + q.votes + ' upvotes';
+
+        const button = document.createElement('button');
+        button.textContent = '▲ Upvote';
+
+        button.addEventListener('click', () => {
+          button.disabled = true;
+          button.textContent = 'Submitting...';
+
+          google.script.run
+            .withSuccessHandler(result => {
+              alert(result.message);
+              loadQuestions();
+            })
+            .withFailureHandler(error => {
+              alert(error.message || 'Unable to submit your vote.');
+              button.disabled = false;
+              button.textContent = '▲ Upvote';
+            })
+            .castVote(q.id);
+        });
+
+        card.appendChild(questionText);
+        card.appendChild(meta);
+        card.appendChild(button);
+        container.appendChild(card);
+      });
+    }
+
+    function showError(error) {
+      document.getElementById('status').textContent =
+        'Error loading questions: ' + error.message;
+    }
+
+    loadQuestions();
+  </script>
+</body>
+</html>
